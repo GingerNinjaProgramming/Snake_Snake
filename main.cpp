@@ -1,7 +1,10 @@
 #include <iostream>
 #include <raylib.h>
+#include <queue>
 
 using namespace std;
+
+const int GRID_CELL_SIZE = 20;
 
 enum Direction { UP, DOWN, LEFT, RIGHT, NONE };
 
@@ -11,27 +14,84 @@ class SnakeObject {
         int y;
         int width;
         int height;
-        Direction direction;
 
-    SnakeObject(int x, int y, int width, int height, Direction dir){
+    SnakeObject(int x, int y, int width, int height){
         this->x = x;
         this->y = y;
         this->width = width;
         this->height = height;
-        this->direction = dir;
+    }
+
+    bool IsCollidingWith(int otherX, int otherY){
+        return x == otherX && y == otherY;
     }
 };
+
+void CreateSnake(queue<SnakeObject*> snake){
+    while(!snake.empty()){
+        SnakeObject* segment = snake.front();
+        snake.pop();
+        DrawRectangle(segment->x, segment->y, segment->width, segment->height, GREEN);
+    }
+} 
+
+void UpdateSnake(Direction direction,queue<SnakeObject*> &snake){
+    queue<SnakeObject*> tempSnake;
+
+    SnakeObject* head = snake.front();
+    snake.pop();
+
+    int prevX = head->x;
+    int prevY = head->y;
+
+    switch(direction){
+        case UP:
+            head->y -= 1 * GRID_CELL_SIZE;
+            break;
+        case DOWN:
+            head->y += 1 * GRID_CELL_SIZE;
+            break;
+        case LEFT:
+            head->x -= 1 * GRID_CELL_SIZE;
+            break;
+        case RIGHT:
+            head->x += 1 * GRID_CELL_SIZE;
+            break;
+        case NONE:
+            break;
+    }
+
+    tempSnake.push(head);
+
+    while(!snake.empty()){
+        SnakeObject* segment = snake.front();
+        snake.pop();
+
+        int newLocX = prevX;
+        int newLocY = prevY;
+
+        prevX = segment->x;
+        prevY = segment->y;
+
+        segment->x = newLocX;
+        segment->y = newLocY;
+
+        tempSnake.push(segment);
+    }
+    snake = tempSnake;
+}
 
 int main () {
     const int SCREEN_WIDTH = 800;
     const int SCREEN_HEIGHT = 600;
 
-    const int GRID_CELL_SIZE = 20;
-
     int food_x = 600;
     int food_y = 300;
 
-    SnakeObject snakeHead(0, 0, GRID_CELL_SIZE, GRID_CELL_SIZE, NONE);
+    queue<SnakeObject*> snake;
+
+    SnakeObject snakeHead(0, 0, GRID_CELL_SIZE, GRID_CELL_SIZE);
+    snake.push(&snakeHead);
 
     Direction direction = NONE;
 
@@ -39,40 +99,33 @@ int main () {
     SetTargetFPS(15);
 
     while (!WindowShouldClose()){
+        int previousSnakeBackX = snake.back()->x;
+        int previousSnakeBackY = snake.back()->y;
 
         if(IsKeyDown(KEY_RIGHT)) direction = RIGHT;
         else if(IsKeyDown(KEY_LEFT)) direction = LEFT;
         else if(IsKeyDown(KEY_UP)) direction = UP;
         else if(IsKeyDown(KEY_DOWN)) direction = DOWN;
 
-        switch(direction){
-            case RIGHT:
-                snakeHead.x += 1 * GRID_CELL_SIZE;
-                break;
-            case LEFT:
-                snakeHead.x -= 1 * GRID_CELL_SIZE;
-                break;
-            case UP:
-                snakeHead.y -= 1 * GRID_CELL_SIZE;
-                break;
-            case DOWN:
-                snakeHead.y += 1 * GRID_CELL_SIZE;
-                break;
-            case NONE:
-                // Do nothing
-                break;
-            default:
-                break;
+        UpdateSnake(direction,snake);
+
+        if(snakeHead.IsCollidingWith(food_x, food_y)){
+            SnakeObject* newSegment = new SnakeObject(previousSnakeBackX, previousSnakeBackY, GRID_CELL_SIZE, GRID_CELL_SIZE);
+            snake.push(newSegment);
+
+            food_x = GetRandomValue(0, (SCREEN_WIDTH / GRID_CELL_SIZE) - 1) * GRID_CELL_SIZE;
+            food_y = GetRandomValue(0, (SCREEN_HEIGHT / GRID_CELL_SIZE) - 1) * GRID_CELL_SIZE;
         }
 
-        
+        cout << snake.size() << "||" << previousSnakeBackX << "||" << snake.back()->x << endl;
 
         BeginDrawing();
             ClearBackground(BLACK);
-            DrawRectangle(snakeHead.x, snakeHead.y, snakeHead.width, snakeHead.height, GREEN);
+            CreateSnake(snake);
             DrawRectangle(food_x, food_y, GRID_CELL_SIZE, GRID_CELL_SIZE, RED);
         EndDrawing();
     }
 
     CloseWindow();
 }
+
