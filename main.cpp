@@ -121,10 +121,10 @@ int main () {
         int previousSnakeBackX = snake.back()->x;
         int previousSnakeBackY = snake.back()->y;
 
-        if(IsKeyDown(KEY_RIGHT)) direction = RIGHT;
-        else if(IsKeyDown(KEY_LEFT)) direction = LEFT;
-        else if(IsKeyDown(KEY_UP)) direction = UP;
-        else if(IsKeyDown(KEY_DOWN)) direction = DOWN;
+        if(IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) direction = RIGHT;
+        else if(IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) direction = LEFT;
+        else if(IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) direction = UP;
+        else if(IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) direction = DOWN;
 
         UpdateSnake(direction,snake);
 
