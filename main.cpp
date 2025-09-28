@@ -81,6 +81,25 @@ void UpdateSnake(Direction direction,queue<SnakeObject*> &snake){
     snake = tempSnake;
 }
 
+bool HandleDeathCollisions(queue<SnakeObject*> snake, int screenWidth, int screenHeight) {
+    SnakeObject* head = snake.front();
+    snake.pop();
+
+    if (head->x < 0 || head->x >= screenWidth || head->y < 0 || head->y >= screenHeight) {
+        return true; // Collision with wall
+    }
+
+    while(!snake.empty()) {
+        SnakeObject* segment = snake.front();
+        snake.pop();
+        if (head->IsCollidingWith(segment->x, segment->y)) {
+            return true; // Collision with self
+        }
+    }
+
+    return false;
+}
+
 int main () {
     const int SCREEN_WIDTH = 800;
     const int SCREEN_HEIGHT = 600;
@@ -115,6 +134,11 @@ int main () {
 
             food_x = GetRandomValue(0, (SCREEN_WIDTH / GRID_CELL_SIZE) - 1) * GRID_CELL_SIZE;
             food_y = GetRandomValue(0, (SCREEN_HEIGHT / GRID_CELL_SIZE) - 1) * GRID_CELL_SIZE;
+        }
+
+        if(HandleDeathCollisions(snake, SCREEN_WIDTH, SCREEN_HEIGHT)){
+            cout << "Game Over!" << endl;
+            break;
         }
 
         cout << snake.size() << "||" << previousSnakeBackX << "||" << snake.back()->x << endl;
