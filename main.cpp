@@ -32,7 +32,7 @@ class SnakeObject {
 enum Difficulty { EASY = 10, MEDIUM = 5, HARD = 1};
 
 enum Direction { UP, DOWN, LEFT, RIGHT, NONE };
-enum GameState { START, PLAYING, GAMEOVER, PAUSED};
+enum GameState { START, PLAYING, GAMEOVER, PAUSED, OPTIONS};
 
 queue<SnakeObject*> snake;
 
@@ -43,6 +43,7 @@ bool inputBuffing = true;
 bool gameStarted = false; // To initialize the snake only once on first frame of PLAYING state
 bool shouldMove = false; 
 bool shouLdClose = false;
+bool escReady = true; //To prevent mutiple esc presses for pause entering/exiting
 
 int food_x = 600;
 int food_y = 300;
@@ -138,8 +139,9 @@ bool HandleDeathCollisions(queue<SnakeObject*> snake) {
 void HandlePlayingState() {
     // Implement the logic for the PLAYING state here
     if(snake.empty()){
-        SnakeObject head(0,0);
-        snake.push(&head);
+        // Allocate head on heap so it persists
+        SnakeObject* head = new SnakeObject(0,0);
+        snake.push(head);
     }
 
     int previousSnakeBackX = snake.back()->x;
@@ -166,7 +168,18 @@ void HandlePlayingState() {
         return;
     }
 
+    if(IsKeyDown(KEY_ESCAPE) && escReady){
+        gameState = PAUSED;
+        escReady = false;
+        return;
+    }
+
+    if(IsKeyReleased(KEY_ESCAPE)){
+        escReady = true;
+    }
+
     score = snake.size() - 1;
+    gameStarted = false;
 
     BeginDrawing();
         ClearBackground(BLACK);
@@ -218,6 +231,32 @@ void HandleMovement()
         UpdateSnake(shouldMove);
     }
 }
+
+void DrawBooleanToggle(string baseText, bool booleanToDraw, int LocX, int LocY){
+    int textWidth = MeasureText(baseText.c_str(),20);
+
+    const char* buffText = booleanToDraw ? "ON" : "OFF";
+
+    DrawText(baseText.c_str(), LocX, LocY, 20, WHITE);
+    DrawText(buffText, LocX + (textWidth + 10), LocY, 20, YELLOW);
+}
+
+void ResetValues()
+{
+    while (!snake.empty())
+    {
+        snake.pop();
+    }
+
+    gameStarted = false;
+    direction = NONE;
+    score = 0;
+    frameCounter = 0;
+    food_x = 600;
+    food_y = 300;
+    gameState = PLAYING;
+}
+
 int main () {
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
     SetTargetFPS(60);
@@ -238,15 +277,68 @@ int main () {
 
                 BeginDrawing();
                     ClearBackground(BLACK);
-                    DrawText("Game Over! Press R to Restart or ESC to Exit", 100, SCREEN_HEIGHT / 2 - 20, 20, WHITE);
+                    DrawText("Game Over! Press R to Restart or ESC to Quit", 100, SCREEN_HEIGHT / 2 - 20, 20, WHITE);
                     DrawText(("Final Score: " + to_string(score)).c_str(), 100, SCREEN_HEIGHT / 2 + 20, 20, WHITE);
                 EndDrawing();
                 break;
             case PAUSED:
+                if(IsKeyDown(KEY_ESCAPE) && escReady){
+                    gameState = PLAYING;
+                    escReady = false;
+                }
+
+                if(IsKeyReleased(KEY_ESCAPE)){
+                    escReady = true;
+                }
+
+                if(IsKeyDown(KEY_O)){
+                    gameState = OPTIONS;
+                    break;
+                }
+
+                BeginDrawing();
+                    ClearBackground(BLACK);
+
+                    //Give a snapshot of the game when paused
+                    CreateSnake(snake);
+                    DrawRectangle(food_x, food_y, GRID_CELL_SIZE, GRID_CELL_SIZE, RED);
+
+                    DrawText("Game Paused! Press ESC to Resume", 100, SCREEN_HEIGHT / 2 - 20, 20, WHITE);
+                    DrawText("Press O to go to the Options Menu", 100, SCREEN_HEIGHT / 2 + 0, 20, WHITE);
+                    DrawText(("Score: " + to_string(score)).c_str(), 100, SCREEN_HEIGHT / 2 + 20, 20, WHITE);
+                EndDrawing();
+                break;
+            case OPTIONS:
+                if(IsKeyDown(KEY_ESCAPE) && escReady){
+                    gameState = PAUSED;
+                    escReady = false;
+                }
+
+                if(IsKeyReleased(KEY_ESCAPE)){
+                    escReady = true;
+                }
+
+                if(IsKeyReleased(KEY_ZERO)){
+                    inputBuffing = !inputBuffing;
+                }
+
+                BeginDrawing();
+                    ClearBackground(BLACK);
+
+                    //Give a snapshot of the game when paused
+                    CreateSnake(snake);
+                    DrawRectangle(food_x, food_y, GRID_CELL_SIZE, GRID_CELL_SIZE, RED);
+                    
+                    DrawText("Options Menu - Use Number Keys (0-9) to toggle", 100, SCREEN_HEIGHT / 2 - 20, 20, WHITE);
+                    // Draw inputBuffing value as ON/OFF
+                    DrawBooleanToggle("No.0: Input Buffing -", inputBuffing, 100, SCREEN_HEIGHT / 2);
+                    
+                    DrawText("Press ESC to return",100, SCREEN_HEIGHT / 2 + 20, 20, WHITE);
+                EndDrawing();
                 break;
         }
 
-        if(WindowShouldClose() && !IsKeyPressed(KEY_ESCAPE)) {
+        if(WindowShouldClose() && (!IsKeyPressed(KEY_ESCAPE) || gameState == GAMEOVER)){
             shouLdClose = true;
             continue;
         }
@@ -255,18 +347,3 @@ int main () {
     CloseWindow();
 }
 
-void ResetValues()
-{
-    while (!snake.empty())
-    {
-        snake.pop();
-    }
-
-    gameStarted = false;
-    direction = NONE;
-    score = 0;
-    frameCounter = 0;
-    food_x = 600;
-    food_y = 300;
-    gameState = PLAYING;
-}
