@@ -104,8 +104,12 @@ int main () {
     const int SCREEN_WIDTH = 800;
     const int SCREEN_HEIGHT = 600;
 
+    bool inputBuffing = true;
+
     int food_x = 600;
     int food_y = 300;
+
+    int score = 0;
 
     queue<SnakeObject*> snake;
 
@@ -121,12 +125,32 @@ int main () {
         int previousSnakeBackX = snake.back()->x;
         int previousSnakeBackY = snake.back()->y;
 
-        if(IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) direction = RIGHT;
-        else if(IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) direction = LEFT;
-        else if(IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) direction = UP;
-        else if(IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) direction = DOWN;
+        if(inputBuffing){
+            queue<Direction> inputBuffer;
 
-        UpdateSnake(direction,snake);
+            if((IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) && direction != LEFT) inputBuffer.push(RIGHT);
+            else if((IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) && direction != RIGHT) inputBuffer.push(LEFT);
+            else if((IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) && direction != DOWN) inputBuffer.push(UP);
+            else if((IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) && direction != UP) inputBuffer.push(DOWN);
+
+            if(!inputBuffer.empty()){
+                direction = inputBuffer.front();
+                inputBuffer.pop();
+
+                UpdateSnake(direction,snake);
+            }else{
+                UpdateSnake(direction,snake);
+            }
+
+        }else{
+
+            if((IsKeyDown(KEY_RIGHT) || IsKeyDown(KEY_D)) && direction != LEFT) direction = RIGHT;
+            else if((IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) && direction != RIGHT) direction = LEFT;
+            else if((IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) && direction != DOWN) direction = UP;
+            else if((IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) && direction != UP) direction = DOWN;
+        
+            UpdateSnake(direction,snake);
+        }
 
         if(snakeHead.IsCollidingWith(food_x, food_y)){
             SnakeObject* newSegment = new SnakeObject(previousSnakeBackX, previousSnakeBackY, GRID_CELL_SIZE, GRID_CELL_SIZE);
@@ -141,12 +165,15 @@ int main () {
             break;
         }
 
-        cout << snake.size() << "||" << previousSnakeBackX << "||" << snake.back()->x << endl;
+        score = snake.size() - 1;
+
+        cout << direction << endl;
 
         BeginDrawing();
             ClearBackground(BLACK);
             CreateSnake(snake);
             DrawRectangle(food_x, food_y, GRID_CELL_SIZE, GRID_CELL_SIZE, RED);
+            DrawText(("Score: " + to_string(score)).c_str(), 10, 10, 20, WHITE);
         EndDrawing();
     }
 
