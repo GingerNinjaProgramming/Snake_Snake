@@ -6,7 +6,11 @@ using namespace std;
 
 const int GRID_CELL_SIZE = 20;
 
+//The difficulty enum values represent the number of frames between each snake movement
+enum Difficulty { EASY = 10, MEDIUM = 5, HARD = 1};
+
 enum Direction { UP, DOWN, LEFT, RIGHT, NONE };
+enum GameState { START, PLAYING, GAMEOVER, PAUSED};
 
 class SnakeObject {
     public:
@@ -35,7 +39,9 @@ void CreateSnake(queue<SnakeObject*> snake){
     }
 } 
 
-void UpdateSnake(Direction direction,queue<SnakeObject*> &snake){
+void UpdateSnake(Direction direction,queue<SnakeObject*> &snake, bool shouldMove){
+    if(!shouldMove) return;
+
     queue<SnakeObject*> tempSnake;
 
     SnakeObject* head = snake.front();
@@ -103,13 +109,16 @@ bool HandleDeathCollisions(queue<SnakeObject*> snake, int screenWidth, int scree
 int main () {
     const int SCREEN_WIDTH = 800;
     const int SCREEN_HEIGHT = 600;
+    const int MOVE_FRAME_DELAY = 10;
 
     bool inputBuffing = true;
+    bool shouldMove = false;
 
     int food_x = 600;
     int food_y = 300;
 
     int score = 0;
+    int frameCounter = 0;
 
     queue<SnakeObject*> snake;
 
@@ -119,11 +128,16 @@ int main () {
     Direction direction = NONE;
 
     InitWindow(SCREEN_WIDTH, SCREEN_HEIGHT, "Snake");
-    SetTargetFPS(15);
+    SetTargetFPS(60);
 
     while (!WindowShouldClose()){
         int previousSnakeBackX = snake.back()->x;
         int previousSnakeBackY = snake.back()->y;
+
+        shouldMove = frameCounter == MOVE_FRAME_DELAY;
+
+        if(shouldMove) frameCounter = 0;
+        else frameCounter++;
 
         if(inputBuffing){
             queue<Direction> inputBuffer;
@@ -137,9 +151,9 @@ int main () {
                 direction = inputBuffer.front();
                 inputBuffer.pop();
 
-                UpdateSnake(direction,snake);
+                UpdateSnake(direction,snake,shouldMove);
             }else{
-                UpdateSnake(direction,snake);
+                UpdateSnake(direction,snake,shouldMove);
             }
 
         }else{
@@ -148,8 +162,9 @@ int main () {
             else if((IsKeyDown(KEY_LEFT) || IsKeyDown(KEY_A)) && direction != RIGHT) direction = LEFT;
             else if((IsKeyDown(KEY_UP) || IsKeyDown(KEY_W)) && direction != DOWN) direction = UP;
             else if((IsKeyDown(KEY_DOWN) || IsKeyDown(KEY_S)) && direction != UP) direction = DOWN;
-        
-            UpdateSnake(direction,snake);
+
+            
+            UpdateSnake(direction,snake,shouldMove);
         }
 
         if(snakeHead.IsCollidingWith(food_x, food_y)){
